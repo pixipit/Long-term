@@ -20,9 +20,9 @@
 
 //https://api.openweathermap.org/data/2.5/weather?id=3067696&units=metric&appid=737ac864d66b83f1704ac5ae89476b25
 
-#define SSD "NETWORKSSID"
-#define PASSWORD "PASSWORD"
 #define TIMEOUT_MS 20000
+String SSID = "NETWORKSSID";
+String PASSWORD = "PASSWORD";
 // constructor for AVR Arduino, copy from GxEPD_Example else
 
 GxIO_Class io(SPI, /*CS=5*/ SS, /*DC=*/ 17, /*RST=*/ 16); // arbitrary selection of 17, 16
@@ -96,7 +96,7 @@ bool connectToWifi(){
     Serial.println("Connecting to wifi");
     WiFi.mode(WIFI_STA);
 
-    WiFi.begin(SSD, PASSWORD);
+    WiFi.begin(SSID.c_str(), PASSWORD.c_str());
 
     unsigned long startAttempTime = millis();
 
@@ -166,7 +166,20 @@ void AddWeatherDataToDoc(UIDocument* doc, String menuName, const WeatherData& da
   menu->children[2].value = String(data.humidity, 0) + "%";
 }
 
+void getCredentials(String& SSID, String& password){
+  String json = GetFileAsString("/credentials.json");
+  DynamicJsonDocument doc(512);
+  DeserializationError  error = deserializeJson(doc, json);
+  if (error) {
+    Serial.print(F("deserializeJson() failed with code "));
+    Serial.println(error.c_str());
+  }
+  SSID = doc["SSID"].as<String>();
+  password = doc["PASSWORD"].as<String>();
+}
+
 void test(){
+  getCredentials(SSID, PASSWORD);
   setUIDoc();
   WeatherData data(23, "", 68);
   WeatherData onlineData(-10, "OFF", 0);
