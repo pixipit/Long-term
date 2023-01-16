@@ -1,0 +1,6 @@
+{
+    "classes":[
+        {"name":".text", "data":{"type":"text", "size": [0.9, 0.33]}},
+        {"name": ".sub-menu", "data":{"size": [0.3, 0.95],"alignType": "TopDown"}}
+    ]
+}
