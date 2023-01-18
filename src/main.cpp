@@ -21,14 +21,13 @@
 //https://api.openweathermap.org/data/2.5/weather?id=3067696&units=metric&appid=737ac864d66b83f1704ac5ae89476b25
 
 #define TIMEOUT_MS 20000
-String SSID = "NETWORKSSID";
-String PASSWORD = "PASSWORD";
+String SSID = "";
+String PASSWORD = "";
 // constructor for AVR Arduino, copy from GxEPD_Example else
 
 GxIO_Class io(SPI, /*CS=5*/ SS, /*DC=*/ 17, /*RST=*/ 16); // arbitrary selection of 17, 16
 GxEPD_Class display(io, /*RST=*/ 16, /*BUSY=*/ 4); // arbitrary selection of (16), 4
 
-UIDocument* uiDoc;
 UIRenderer renderer(&display);
 
 
@@ -133,7 +132,7 @@ String GetFileAsString(String path){
   return jsonMenu;
 }
 
-void setUIDoc(){
+UIDocument* getUIDoc(){
   String jsonString = GetFileAsString("/menu.json");
   DynamicJsonDocument doc(2048);
   DeserializationError  error = deserializeJson(doc, jsonString);
@@ -152,11 +151,7 @@ void setUIDoc(){
   }
   JsonArray classArray = classes["classes"].as<JsonArray>();
 
-  uiDoc = new UIDocument(jObject, display.width(), display.height(), &classArray);
-}
-
-void drawUIDoc(){
-  renderer.render(uiDoc);
+  return new UIDocument(jObject, display.width(), display.height(), &classArray);
 }
 
 void AddWeatherDataToDoc(UIDocument* doc, String menuName, const WeatherData& data){
@@ -166,7 +161,28 @@ void AddWeatherDataToDoc(UIDocument* doc, String menuName, const WeatherData& da
   menu->children[2].value = String(data.humidity, 0) + "%";
 }
 
+void createCredentialsFile(){
+  DynamicJsonDocument doc(256);
+  doc["SSID"] = "";
+  doc["PASSWORD"] = "";
+
+  File f = SPIFFS.open("/credentials.json", "w", true);
+  if (!f) {
+    Serial.println("failed to create /credentials.json");
+  }
+  String s;
+  serializeJson(doc, s);
+
+  f.print(s);
+  f.close();
+}
+
 void getCredentials(String& SSID, String& password){
+  if(!SPIFFS.exists("/credentials.json")){
+    Serial.println("Creating /credentials.json file");
+    createCredentialsFile();
+  }
+
   String json = GetFileAsString("/credentials.json");
   DynamicJsonDocument doc(512);
   DeserializationError  error = deserializeJson(doc, json);
@@ -180,7 +196,7 @@ void getCredentials(String& SSID, String& password){
 
 void test(){
   getCredentials(SSID, PASSWORD);
-  setUIDoc();
+  UIDocument* uiDoc = getUIDoc();
   WeatherData data(23, "", 68);
   WeatherData onlineData(-10, "OFF", 0);
   AddWeatherDataToDoc(uiDoc, "InDoor", data);
@@ -196,7 +212,24 @@ void test(){
   }
   AddWeatherDataToDoc(uiDoc, "OutDoor", onlineData);
   uiDoc->find("DescriptionText")->value = onlineData.description;
-  display.drawPaged(drawUIDoc); // version for AVR using paged drawing, works also on other processors
+  display.drawPaged([](const void* doc){renderer.render((const UIDocument*)doc);}, (const void*)uiDoc);
+  delete uiDoc;
+}
+
+void offlineTest(){
+  UIDocument* uiDoc = getUIDoc();
+  WeatherData data(23, "", 68);
+  WeatherData onlineData(-10, "CLEAR", 0);
+  AddWeatherDataToDoc(uiDoc, "InDoor", data);
+  AddWeatherDataToDoc(uiDoc, "OutDoor", onlineData);
+
+  Serial.println("InDoor data added");
+  display.init();
+  display.eraseDisplay();
+  
+  uiDoc->find("DescriptionText")->value = onlineData.description;
+  display.drawPaged([](const void* doc){renderer.render((const UIDocument*)doc);}, (const void*)uiDoc);
+  delete uiDoc;
 }
 
 void setup()
@@ -210,6 +243,11 @@ void setup()
     return;
   }
 
-  test();
+  //test();
+  offlineTest();
   Serial.println("Done");
+}
+
+void loop(){
+    //This is not going to be called  
 }
