@@ -18,6 +18,9 @@
 #include <FS.h>
 #include <SPIFFS.h>
 
+#define uS_TO_MINUTES_FACTOR 1000000 * 60  /* Conversion factor for micro seconds to minutes */
+#define TIME_TO_SLEEP_MINUTES  15        /* Time ESP32 will go to sleep (in minutes) */
+
 //https://api.openweathermap.org/data/2.5/weather?id=3067696&units=metric&appid=737ac864d66b83f1704ac5ae89476b25
 
 #define TIMEOUT_MS 20000
@@ -237,6 +240,7 @@ void setup()
   delay(3000);
   Serial.begin(115200);
   Serial.println("Hello World!");
+  esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP_MINUTES * uS_TO_MINUTES_FACTOR);
 
   if(!SPIFFS.begin(true)){
     Serial.println("An Error has occurred while mounting SPIFFS");
@@ -245,7 +249,8 @@ void setup()
 
   //test();
   offlineTest();
-  Serial.println("Done");
+  Serial.println("Done going to sleep");
+  esp_deep_sleep_start();
 }
 
 void loop(){
