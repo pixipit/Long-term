@@ -18,12 +18,17 @@
 #include <FS.h>
 #include <SPIFFS.h>
 
+#include "WiFiManager.h"
+
+
 #define uS_TO_MINUTES_FACTOR 1000000 * 60  /* Conversion factor for micro seconds to minutes */
 #define TIME_TO_SLEEP_MINUTES  15        /* Time ESP32 will go to sleep (in minutes) */
 
+#define AP_NAME "STATION"
+
 //https://api.openweathermap.org/data/2.5/weather?id=3067696&units=metric&appid=737ac864d66b83f1704ac5ae89476b25
 
-#define TIMEOUT_MS 20000
+#define TIMEOUT_MS 50000
 String SSID = "";
 String PASSWORD = "";
 // constructor for AVR Arduino, copy from GxEPD_Example else
@@ -94,11 +99,11 @@ WeatherData getWeatherData(){
   }
 }
 
-bool connectToWifi(){
+bool connectToWifiWithDefaultSetting(){
     Serial.println("Connecting to wifi");
     WiFi.mode(WIFI_STA);
 
-    WiFi.begin(SSID.c_str(), PASSWORD.c_str());
+    WiFi.begin();
 
     unsigned long startAttempTime = millis();
 
@@ -119,6 +124,36 @@ bool connectToWifi(){
     }
 }
 
+bool startConfigPortal(){
+  WiFiManager wm;
+  wm.setConfigPortalTimeout(300);
+ 
+  if (!wm.startConfigPortal(AP_NAME)) {
+    Serial.println("failed to connect and hit timeout");
+    delay(3000);
+    return false;
+  }
+ 
+  //if you get here you have connected to the WiFi
+  Serial.println("connected...yeey :)");
+
+  WiFi.mode(WIFI_STA);
+  return true;
+}
+
+void drawAPMode();
+
+bool connectToWifi(){
+  Serial.println("Connecting to wifi");
+  WiFi.mode(WIFI_STA);     
+
+  if(connectToWifiWithDefaultSetting()){
+    return true;
+  }
+
+  display.drawPaged(drawAPMode);
+  return startConfigPortal();
+}
 
 String GetFileAsString(String path){
   if(!SPIFFS.exists(path)){
@@ -164,41 +199,32 @@ void AddWeatherDataToDoc(UIDocument* doc, String menuName, const WeatherData& da
   menu->children[2].value = String(data.humidity, 0) + "%";
 }
 
-void createCredentialsFile(){
-  DynamicJsonDocument doc(256);
-  doc["SSID"] = "";
-  doc["PASSWORD"] = "";
+void drawConnecting(){
+  display.setRotation(1);
+  display.setTextSize(2);
+  display.setTextColor(GxEPD_BLACK);
 
-  File f = SPIFFS.open("/credentials.json", "w", true);
-  if (!f) {
-    Serial.println("failed to create /credentials.json");
-  }
-  String s;
-  serializeJson(doc, s);
-
-  f.print(s);
-  f.close();
+  int16_t tbx, tby; uint16_t tbw, tbh;
+  display.getTextBounds("CONNECTING", 0, 0, &tbx, &tby, &tbw, &tbh);
+  // center bounding box by transposition of origin:
+  uint16_t x = ((display.width() - tbw) / 2) - tbx;
+  uint16_t y = ((display.height() - tbh) / 2) - tby;
+  display.setCursor(x, y);
+  display.print("CONNECTING");
 }
 
-void getCredentials(String& SSID, String& password){
-  if(!SPIFFS.exists("/credentials.json")){
-    Serial.println("Creating /credentials.json file");
-    createCredentialsFile();
-  }
-
-  String json = GetFileAsString("/credentials.json");
-  DynamicJsonDocument doc(512);
-  DeserializationError  error = deserializeJson(doc, json);
-  if (error) {
-    Serial.print(F("deserializeJson() failed with code "));
-    Serial.println(error.c_str());
-  }
-  SSID = doc["SSID"].as<String>();
-  password = doc["PASSWORD"].as<String>();
+void drawAPMode(){
+  display.fillScreen(GxEPD_WHITE);
+  int16_t tbx, tby; uint16_t tbw, tbh;
+  display.getTextBounds("AP MODE", 0, 0, &tbx, &tby, &tbw, &tbh);
+  // center bounding box by transposition of origin:
+  uint16_t x = ((display.width() - tbw) / 2) - tbx;
+  uint16_t y = ((display.height() - tbh) / 2) - tby;
+  display.setCursor(x, y);
+  display.print("AP MODE");
 }
 
 void test(){
-  getCredentials(SSID, PASSWORD);
   UIDocument* uiDoc = getUIDoc();
   WeatherData data(23, "", 68);
   WeatherData onlineData(-10, "OFF", 0);
@@ -206,15 +232,18 @@ void test(){
   Serial.println("InDoor data added");
   display.init();
   display.eraseDisplay();
+  display.drawPaged(drawConnecting);
+
+  bool connected = connectToWifi();
   
-  if(connectToWifi())
+  if(connected)
   {
     onlineData =  getWeatherData();
-  }else{
-    //AP MODE
   }
+
   AddWeatherDataToDoc(uiDoc, "OutDoor", onlineData);
   uiDoc->find("DescriptionText")->value = onlineData.description;
+  display.fillScreen(GxEPD_WHITE);
   display.drawPaged([](const void* doc){renderer.render((const UIDocument*)doc);}, (const void*)uiDoc);
   delete uiDoc;
 }
@@ -235,20 +264,62 @@ void offlineTest(){
   delete uiDoc;
 }
 
+void testWifi(){
+  WiFi.mode(WIFI_STA);
+  WiFiManager wm;    
+     
+  bool res;
+  wm.resetSettings();
+  res = wm.autoConnect("AutoConnectAP");
+  if(!res) {
+      Serial.println("Failed to connect");
+  } 
+  else {
+        //if you get here you have connected to the WiFi    
+    Serial.println("connected...yeey :)");
+  }
+}
+
+void testOnDemandAP(){
+  WiFiManager wm;
+ 
+  //reset settings - for testing
+  //wm.resetSettings();
+  
+  // set configportal timeout
+  wm.setConfigPortalTimeout(120);
+ 
+  if (!wm.startConfigPortal("OnDemandAP")) {
+    Serial.println("failed to connect and hit timeout");
+    delay(3000);
+    //reset and try again, or maybe put it to deep sleep
+    ESP.restart();
+    delay(5000);
+  }
+ 
+  //if you get here you have connected to the WiFi
+  Serial.println("connected...yeey :)");
+}
+
 void setup()
 {
   delay(3000);
   Serial.begin(115200);
   Serial.println("Hello World!");
   esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP_MINUTES * uS_TO_MINUTES_FACTOR);
+  //esp_sleep_enable_timer_wakeup(0.1 * uS_TO_MINUTES_FACTOR); // for testing deep sleep
+
+
 
   if(!SPIFFS.begin(true)){
     Serial.println("An Error has occurred while mounting SPIFFS");
     return;
   }
 
-  //test();
-  offlineTest();
+  
+
+  test();
+  //offlineTest();
   Serial.println("Done going to sleep");
   esp_deep_sleep_start();
 }
