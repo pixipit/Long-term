@@ -6,7 +6,7 @@ void UIRenderer::drawBoarder(const Element& e){
   display->drawRect((int)e.posX, (int)e.posY, (int)e.sizeX, (int)e.sizeY, GxEPD_BLACK);
 }
 void UIRenderer::drawText(const Element& eReal){
-  display->setTextSize(2);
+  display->setTextSize(eReal.textSize);
   display->setTextColor(GxEPD_BLACK);
 
   int16_t tbx, tby; uint16_t tbw, tbh;
@@ -19,8 +19,8 @@ void UIRenderer::drawText(const Element& eReal){
 }
 
 void UIRenderer::drawElement(const Element& e){
-  display->setRotation(1);
-  if(e.boarder){
+  Serial.println(display->getRotation());
+  if(e.border){
     drawBoarder(e);
   }
   if(e.type == ElementType::Text){

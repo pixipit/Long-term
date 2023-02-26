@@ -4,8 +4,9 @@ UIDocument::UIDocument(/* args */)
 {
 }
 UIDocument::UIDocument(const JsonObject& jObject, int width, int height, const JsonArray* classArray = nullptr): classes(classArray){
+  Serial.println("converting json to UIDoc");
   root = jsonToElement(jObject);
-  Serial.println("json converted to element1");
+  Serial.println("json converted");
   Element parent;
   parent.posX = 0;
   parent.posY = 2;
@@ -20,7 +21,11 @@ UIDocument::UIDocument(const JsonObject& jObject, int width, int height, const J
   Serial.println("converted to UIdoc");
 }
 
-UIDocument::~UIDocument(){}
+UIDocument::~UIDocument(){
+  //for(int i = 0; i < root.nOfChildren; i++){
+  //  delete &(root.children[i]);
+  //}
+}
 
 Element* UIDocument::find(const String& name, Element& parent){
   if(parent.name == name){
@@ -86,6 +91,12 @@ void UIDocument::setProperties(const JsonObject& jObject, Element& e){
     }
     if(String(kv.key().c_str()) == String("name")){
       e.name = kv.value().as<String>();
+    }
+    if(String(kv.key().c_str()) == String("border")){
+      e.border = (kv.value().as<String>() == "true");
+    }
+     if(String(kv.key().c_str()) == String("textSize")){
+      e.textSize = kv.value().as<int>();
     }
     if(String(kv.key().c_str()) == String("alignType")){
       String alignType = kv.value().as<String>();

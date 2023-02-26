@@ -18,12 +18,16 @@
 #include <FS.h>
 #include <SPIFFS.h>
 
+#include <Wire.h>
+#include "SparkFunHTU21D.h"
+
 #include "WiFiManager.h"
 
 
-#define uS_TO_MINUTES_FACTOR 1000000 * 60  /* Conversion factor for micro seconds to minutes */
+#define MINUTES_TO_uS_FACTOR 1000000 * 60  /* Conversion factor for micro seconds to minutes */
 #define TIME_TO_SLEEP_MINUTES  15        /* Time ESP32 will go to sleep (in minutes) */
 
+#define AP_TIMEOUT 30
 #define AP_NAME "STATION"
 
 //https://api.openweathermap.org/data/2.5/weather?id=3067696&units=metric&appid=737ac864d66b83f1704ac5ae89476b25
@@ -37,7 +41,9 @@ GxIO_Class io(SPI, /*CS=5*/ SS, /*DC=*/ 17, /*RST=*/ 16); // arbitrary selection
 GxEPD_Class display(io, /*RST=*/ 16, /*BUSY=*/ 4); // arbitrary selection of (16), 4
 
 UIRenderer renderer(&display);
+UIDocument* APuiDoc = nullptr;
 
+HTU21D myHumidity;
 
 class WeatherData
 {
@@ -94,65 +100,31 @@ WeatherData getWeatherData(){
 
   }else{
     Serial.println("Code:" + String(http_code));
-    WeatherData data(0.0, "OFFLINE", 0);
+    WeatherData data(0.0, "OFF", 0);
     return data;
   }
 }
 
-bool connectToWifiWithDefaultSetting(){
-    Serial.println("Connecting to wifi");
-    WiFi.mode(WIFI_STA);
-
-    WiFi.begin();
-
-    unsigned long startAttempTime = millis();
-
-    while (WiFi.status() != WL_CONNECTED && millis() - startAttempTime < TIMEOUT_MS)
-    {
-      Serial.print(".");
-      delay(100);
-    }
-    Serial.println(".");
-
-    if(WiFi.status() != WL_CONNECTED){
-      Serial.println("Failed to connect!");
-      return false;
-    }else{
-      Serial.print("Connected! ");
-      Serial.println(WiFi.localIP());
-      return true;
-    }
-}
-
-bool startConfigPortal(){
-  WiFiManager wm;
-  wm.setConfigPortalTimeout(300);
- 
-  if (!wm.startConfigPortal(AP_NAME)) {
-    Serial.println("failed to connect and hit timeout");
-    delay(3000);
-    return false;
-  }
- 
-  //if you get here you have connected to the WiFi
-  Serial.println("connected...yeey :)");
-
-  WiFi.mode(WIFI_STA);
-  return true;
-}
-
 void drawAPMode();
+UIDocument* getUIDoc(String path);
 
-bool connectToWifi(){
-  Serial.println("Connecting to wifi");
+void configModeCallback (WiFiManager *myWiFiManager){
+  Serial.println("Starting Portal CallBack");
+  //UIDocument* uiDoc = getUIDoc("/APMenu.json");
+  display.drawPaged([](const void* doc){renderer.render((const UIDocument*)doc);}, (const void*)APuiDoc); // not working
+  //display.drawPaged(drawAPMode);
+}
+
+bool autoConnectToWifi(){
+  WiFiManager wm;
+
   WiFi.mode(WIFI_STA);     
 
-  if(connectToWifiWithDefaultSetting()){
-    return true;
-  }
+  wm.resetSettings(); // for testing
+  wm.setConfigPortalTimeout(AP_TIMEOUT);
+  wm.setAPCallback(configModeCallback);
 
-  display.drawPaged(drawAPMode);
-  return startConfigPortal();
+  return (bool)wm.autoConnect(AP_NAME);
 }
 
 String GetFileAsString(String path){
@@ -170,8 +142,8 @@ String GetFileAsString(String path){
   return jsonMenu;
 }
 
-UIDocument* getUIDoc(){
-  String jsonString = GetFileAsString("/menu.json");
+UIDocument* getUIDoc(String path){
+  String jsonString = GetFileAsString(path);
   DynamicJsonDocument doc(2048);
   DeserializationError  error = deserializeJson(doc, jsonString);
   if (error) {
@@ -181,7 +153,7 @@ UIDocument* getUIDoc(){
   JsonObject jObject = doc["visualElement"].as<JsonObject>();
 
   jsonString = GetFileAsString("/styleClasses.json");
-  DynamicJsonDocument classes(512);
+  DynamicJsonDocument classes(1024);
   error = deserializeJson(classes, jsonString);
   if (error) {
     Serial.print(F("(styleClass.json) deserializeJson() failed with code "));
@@ -200,7 +172,6 @@ void AddWeatherDataToDoc(UIDocument* doc, String menuName, const WeatherData& da
 }
 
 void drawConnecting(){
-  display.setRotation(1);
   display.setTextSize(2);
   display.setTextColor(GxEPD_BLACK);
 
@@ -214,7 +185,6 @@ void drawConnecting(){
 }
 
 void drawAPMode(){
-  display.fillScreen(GxEPD_WHITE);
   int16_t tbx, tby; uint16_t tbw, tbh;
   display.getTextBounds("AP MODE", 0, 0, &tbx, &tby, &tbw, &tbh);
   // center bounding box by transposition of origin:
@@ -224,17 +194,27 @@ void drawAPMode(){
   display.print("AP MODE");
 }
 
+WeatherData getIndoorData(){
+  float humd = myHumidity.readHumidity();
+  float temp = myHumidity.readTemperature();
+  return WeatherData(temp, "", humd);
+}
+
 void test(){
-  UIDocument* uiDoc = getUIDoc();
-  WeatherData data(23, "", 68);
+  UIDocument* uiDoc = getUIDoc("/menu.json");
+  UIDocument* uiDocConnecting = getUIDoc("/ConnectMenu.json");
+  APuiDoc = getUIDoc("/APMenu.json");
+  WeatherData data(10, "0", 0); //getIndoorData();
   WeatherData onlineData(-10, "OFF", 0);
   AddWeatherDataToDoc(uiDoc, "InDoor", data);
   Serial.println("InDoor data added");
   display.init();
   display.eraseDisplay();
-  display.drawPaged(drawConnecting);
+  display.setRotation(1);
+  display.drawPaged([](const void* doc){renderer.render((const UIDocument*)doc);}, (const void*)uiDocConnecting);
 
-  bool connected = connectToWifi();
+
+  bool connected = autoConnectToWifi();
   
   if(connected)
   {
@@ -243,13 +223,12 @@ void test(){
 
   AddWeatherDataToDoc(uiDoc, "OutDoor", onlineData);
   uiDoc->find("DescriptionText")->value = onlineData.description;
-  display.fillScreen(GxEPD_WHITE);
   display.drawPaged([](const void* doc){renderer.render((const UIDocument*)doc);}, (const void*)uiDoc);
   delete uiDoc;
 }
 
 void offlineTest(){
-  UIDocument* uiDoc = getUIDoc();
+  UIDocument* uiDoc = getUIDoc("/menu.json");
   WeatherData data(23, "", 68);
   WeatherData onlineData(-10, "CLEAR", 0);
   AddWeatherDataToDoc(uiDoc, "InDoor", data);
@@ -306,18 +285,16 @@ void setup()
   delay(3000);
   Serial.begin(115200);
   Serial.println("Hello World!");
-  esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP_MINUTES * uS_TO_MINUTES_FACTOR);
-  //esp_sleep_enable_timer_wakeup(0.1 * uS_TO_MINUTES_FACTOR); // for testing deep sleep
+  esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP_MINUTES * MINUTES_TO_uS_FACTOR);
+  //esp_sleep_enable_timer_wakeup(0.1 * MINUTES_TO_uS_FACTOR); // for testing deep sleep
 
-
+  //myHumidity.begin();
 
   if(!SPIFFS.begin(true)){
     Serial.println("An Error has occurred while mounting SPIFFS");
     return;
   }
-
   
-
   test();
   //offlineTest();
   Serial.println("Done going to sleep");

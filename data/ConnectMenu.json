@@ -1,0 +1,18 @@
+{"visualElement":{
+    "name": "root",
+    "pos": [0,0],
+    "size" : [0.96, 0.90],
+    "alignType": "TopDown",
+    "children":[
+        { "size" : [1, 0.33],"alignType": "TopDown", "children": [
+            {"type":"text","name":"Header","value": "Connecting!", "children": []}
+        ]},
+        {"size" : [1, 0.66],"alignType": "TopDown", "border":"false" ,"children": [
+            {"class":".description", "value": "If station fails to connect", "children": []},
+            {"class":".description", "value": "wifi will need to be", "children": []},
+            {"class":".description", "value": "set manually", "children": []}
+
+        ]}
+    ]
+}
+}  

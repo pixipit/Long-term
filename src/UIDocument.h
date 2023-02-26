@@ -21,7 +21,7 @@ enum AlignType
 class Element
 {
 public:
-  bool boarder = true;
+  bool border = true;
   ElementType type;
   String name;
   float posX = 0;
@@ -31,9 +31,14 @@ public:
   
   bool centered = true;
   String value;
+  int textSize = 2;
   AlignType alignType = AlignType::LeftRight;
   int nOfChildren;
   Element* children;
+
+  //~Element(){
+  //  delete children;
+  //}
 };
 
 class UIDocument

@@ -1,0 +1,18 @@
+{"visualElement":{
+    "name": "root",
+    "pos": [0,0],
+    "size" : [0.96, 0.90],
+    "alignType": "TopDown",
+    "children":[
+        { "size" : [1, 0.33],"alignType": "TopDown", "children": [
+            {"type":"text","name":"Header","value": "AP mode!", "children": []}
+        ]},
+        {"size" : [1, 0.66],"alignType": "TopDown", "border":"false" ,"children": [
+            {"class":".description", "name":"des","value": "use a device", "children": []},
+            {"class":".description", "name":"des","value": "connect to wifi 'STATION'", "children": []},
+            {"class":".description" ,"name":"des","value": "set wifi to connect to", "children": []}
+
+        ]}
+    ]
+}
+}  
