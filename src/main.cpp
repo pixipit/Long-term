@@ -11,7 +11,6 @@
 #include <WiFi.h>
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
-#include<ctime>
 
 #include<UIDocument.h>
 #include<UIRenderer.h>
@@ -25,7 +24,8 @@
 #include "WiFiManager.h"
 
 #include "weatherStationDataTypes.hpp"
-
+#include "fileSystemUtils.hpp"
+#include "jsonUtils.hpp"
 
 #define MINUTES_TO_uS_FACTOR 1000000 * 60  /* Conversion factor for micro seconds to minutes */
 #define TIME_TO_SLEEP_MINUTES  15        /* Time ESP32 will go to sleep (in minutes) */
@@ -40,13 +40,7 @@ const String APPID = "37ac864d66b83f1704ac5ae89476b25";
 
 //https://api.openweathermap.org/data/2.5/weather?id=3067696&units=metric&appid=737ac864d66b83f1704ac5ae89476b25
 
-#define TIMEOUT_MS 50000
-String SSID = "";
-String PASSWORD = "";
 // constructor for AVR Arduino, copy from GxEPD_Example else
-
-#define SAVED_WEATHER_DATA_PATH "/savedWeatherData.json"
-
 GxIO_Class io(SPI, /*CS=5*/ SS, /*DC=*/ 17, /*RST=*/ 16); // arbitrary selection of 17, 16
 GxEPD_Class display(io, /*RST=*/ 16, /*BUSY=*/ 4); // arbitrary selection of (16), 4
 
@@ -54,58 +48,6 @@ UIRenderer renderer(&display);
 UIDocument* APuiDoc = nullptr;
 
 HTU21D indoorSensor;
-
-DynamicJsonDocument toJSON(String s){
-  DynamicJsonDocument doc(2048);
-  DeserializationError  error = deserializeJson(doc, s);
-  if (error) {
-    Serial.print(F("deserializeJson() failed with code "));
-    Serial.println(error.c_str());
-  }
-  return doc;
-}
-
-HttpWeatherResponse processJson(const DynamicJsonDocument& doc){
-  String description = doc["weather"][0]["main"];
-  description.toUpperCase();
-  float temp = doc["main"]["temp"];
-  int humidity = doc["main"]["humidity"];
-  int time = doc["dt"].as<int>();
-  int timeZone = doc["timezone"];
-  auto t = std::time_t(time + timeZone);
-  String timeAsString = String(std::ctime(&t));
-  Serial.println(timeAsString);
-  DataTime d{timeAsString.substring(4, 10), timeAsString.substring(11, 16)};
-  WeatherData data(temp, description, humidity);
-  return HttpWeatherResponse{data, d};
-}
-
-void SaveWeatherData(String data){
-  File f = SPIFFS.open(SAVED_WEATHER_DATA_PATH, "w");
-  if (!f) {
-    Serial.println("file open failed");
-  }
-  if (f.print(data)) {
-    Serial.println("File was written");
-  } else {
-    Serial.println("File write failed");
-  }
-  f.close();
-}
-String GetFileAsString(String path);
-HttpWeatherResponse getSavedWeatherData(){
-  String s = GetFileAsString(SAVED_WEATHER_DATA_PATH);
-  DynamicJsonDocument doc = toJSON(s);
-  return processJson(doc);
-}
-
-HttpWeatherResponse tryGetSavedWeatherData(){
-  if(!SPIFFS.exists(SAVED_WEATHER_DATA_PATH)){
-      Serial.println("Data not saved!");
-      return HttpWeatherResponse{};
-    }
-    return getSavedWeatherData();
-}
 
 HttpWeatherResponse getWeatherData(){
   HTTPClient client;
@@ -116,10 +58,10 @@ HttpWeatherResponse getWeatherData(){
 
   if(http_code == 200){
     String payload = client.getString();
-    SaveWeatherData(payload);
+    saveWeatherData(payload);
     Serial.println("Saved data");
     DynamicJsonDocument doc = toJSON(payload);
-    return processJson(doc);
+    return jsonToHttpWeatherResponse(doc);
   }else{
     return tryGetSavedWeatherData();
   }
@@ -135,27 +77,11 @@ bool autoConnectToWifi(){
 
   WiFi.mode(WIFI_STA);     
 
-  //wm.resetSettings(); // for testing
+  wm.resetSettings(); // for testing
   wm.setConfigPortalTimeout(AP_TIMEOUT);
   wm.setAPCallback(configModeCallback);
 
   return (bool)wm.autoConnect(AP_NAME);
-}
-
-String GetFileAsString(String path){
-  if(!SPIFFS.exists(path)){
-    Serial.println("file not found! path:" + path);
-    return "";
-  }
-  
-  File f = SPIFFS.open(path, "r");
-
-  if (!f) {
-    Serial.println("file open failed");
-  }
-  String s = f.readString();
-  f.close();
-  return s;
 }
 
 void AddWeatherDataToDoc(UIDocument* doc, String menuName, const WeatherData& data){
