@@ -212,3 +212,40 @@ void UIDocument::alignChildren(Element& parent){
         alignChildren(parent.children[i]);
     }
 }
+
+String UIDocument::GetFileAsString(String path){
+  if(!SPIFFS.exists(path)){
+    Serial.println("file not found! path:" + path);
+  }
+  
+  File f = SPIFFS.open(path, "r");
+
+  if (!f) {
+    Serial.println("file open failed");
+  }
+  String jsonMenu = f.readString();
+  f.close();
+  return jsonMenu;
+}
+
+UIDocument* UIDocument::getUIDoc(String path, int screenWidth, int screenHeight){
+  String jsonString = GetFileAsString(path);
+  DynamicJsonDocument doc(2048);
+  DeserializationError  error = deserializeJson(doc, jsonString);
+  if (error) {
+    Serial.print(F("deserializeJson() failed with code "));
+    Serial.println(error.c_str());
+  }
+  JsonObject jObject = doc["visualElement"].as<JsonObject>();
+
+  jsonString = GetFileAsString("/styleClasses.json");
+  DynamicJsonDocument classes(1024);
+  error = deserializeJson(classes, jsonString);
+  if (error) {
+    Serial.print(F("(styleClass.json) deserializeJson() failed with code "));
+    Serial.println(error.c_str());
+  }
+  JsonArray classArray = classes["classes"].as<JsonArray>();
+
+  return new UIDocument(jObject, screenWidth, screenHeight, &classArray);
+}

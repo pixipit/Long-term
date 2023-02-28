@@ -9,11 +9,14 @@
             {"class":".text", "value": "68%", "children": []}
         ]},
         {"name":"middle", "class":".sub-menu", "children": [
-            {"size":[1.0, 0.35], "children":[
-                {"type":"text","name":"TimeText","value": "1.4", "children": []}
+            {"size":[1.0, 0.33], "children":[
+                {"type":"text","name":"DateText","value": "1.4", "children": []}
             ]},
-            {"size":[1.0, 0.65], "children":[
+            {"size":[1.0, 0.33], "children":[
                 {"type":"text","name":"DescriptionText","value": "Clear", "children": []}
+            ]},
+            {"size":[1.0, 0.33], "children":[
+                {"type":"text","name":"TimeText","value": "22:00", "children": []}
             ]}
         ]},
         {"name":"OutDoor", "class":".sub-menu", "children": [

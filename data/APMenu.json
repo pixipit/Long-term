@@ -8,9 +8,9 @@
             {"type":"text","name":"Header","value": "AP mode!", "children": []}
         ]},
         {"size" : [1, 0.66],"alignType": "TopDown", "border":"false" ,"children": [
-            {"class":".description", "name":"des","value": "use a device", "children": []},
-            {"class":".description", "name":"des","value": "connect to wifi 'STATION'", "children": []},
-            {"class":".description" ,"name":"des","value": "set wifi to connect to", "children": []}
+            {"class":".description", "name":"des","value": "use a device.", "children": []},
+            {"class":".description", "name":"des","value": "connect to wifi 'STATION'.", "children": []},
+            {"class":".description" ,"name":"des","value": "set wifi to connect to.", "children": []}
 
         ]}
     ]

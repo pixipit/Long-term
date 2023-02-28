@@ -3,6 +3,8 @@
 #include<WString.h>
 #include <ArduinoJson.h>
 
+#include <FS.h>
+#include <SPIFFS.h>
 
 enum ElementType
 {
@@ -35,10 +37,6 @@ public:
   AlignType alignType = AlignType::LeftRight;
   int nOfChildren;
   Element* children;
-
-  //~Element(){
-  //  delete children;
-  //}
 };
 
 class UIDocument
@@ -46,13 +44,13 @@ class UIDocument
 private:
   Element jsonToElement(const JsonObject& jObject);
   void printElement(Element& e);
-  void displayElement(JsonObject jObject, int width, int height);
   void alignChildren(Element& parent);
   int calculateGapXBetweenChildren(Element& parent);
   int calculateGapYBetweenChildren(Element& parent);
   Element toRealCoord(Element e, const Element& parentReal);
   void setProperties(const JsonObject& jObject, Element& e);
   const JsonArray* classes = nullptr;
+  UIDocument* getUIDoc(String path, int screenWidth, int screenHeight);
 public:
     Element root;
     UIDocument();
@@ -60,4 +58,5 @@ public:
     UIDocument(const JsonObject& jObject, int width, int height, const JsonArray* classArray);
     Element* find(const String& name);
     Element* find(const String& name, Element& parent);
+    String GetFileAsString(String path);
 };

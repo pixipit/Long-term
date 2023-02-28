@@ -19,7 +19,6 @@ void UIRenderer::drawText(const Element& eReal){
 }
 
 void UIRenderer::drawElement(const Element& e){
-  Serial.println(display->getRotation());
   if(e.border){
     drawBoarder(e);
   }
