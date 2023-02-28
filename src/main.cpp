@@ -24,6 +24,8 @@
 
 #include "WiFiManager.h"
 
+#include "weatherStationDataTypes.hpp"
+
 
 #define MINUTES_TO_uS_FACTOR 1000000 * 60  /* Conversion factor for micro seconds to minutes */
 #define TIME_TO_SLEEP_MINUTES  15        /* Time ESP32 will go to sleep (in minutes) */
@@ -53,15 +55,6 @@ UIDocument* APuiDoc = nullptr;
 
 HTU21D indoorSensor;
 
-class WeatherData
-{
-public:
-float temp, humidity;
-String description;
-WeatherData(float temp, String description, int humidity): description(description), temp(temp), humidity(humidity){}
-
-};
-
 DynamicJsonDocument toJSON(String s){
   DynamicJsonDocument doc(2048);
   DeserializationError  error = deserializeJson(doc, s);
@@ -71,20 +64,6 @@ DynamicJsonDocument toJSON(String s){
   }
   return doc;
 }
-
-struct DataTime
-{
-  String date;
-  String time;
-};
-
-struct HttpWeatherResponse
-{
-  WeatherData weatherData;// = WeatherData(23.0, "", 68);
-  DataTime timeData;// = DataTime{ "JAN 1", "12:00"};
-  HttpWeatherResponse():weatherData(WeatherData(23.0, "", 68)), timeData(DataTime{ "JAN 1", "12:00"}){}
-  HttpWeatherResponse(WeatherData weatherData, DataTime timeData):weatherData(weatherData), timeData(timeData){}
-};
 
 HttpWeatherResponse processJson(const DynamicJsonDocument& doc){
   String description = doc["weather"][0]["main"];
@@ -146,8 +125,6 @@ HttpWeatherResponse getWeatherData(){
   }
 }
 
-UIDocument* getUIDoc(String path);
-
 void configModeCallback (WiFiManager *myWiFiManager){
   Serial.println("Starting Portal CallBack");
   display.drawPaged([](const void* doc){renderer.render((const UIDocument*)doc);}, (const void*)APuiDoc); // not working
@@ -181,19 +158,6 @@ String GetFileAsString(String path){
   return s;
 }
 
-UIDocument* getUIDoc(String path){
-  String jsonString = GetFileAsString(path);
-  DynamicJsonDocument doc = toJSON(jsonString);
-  JsonObject jObject = doc["visualElement"].as<JsonObject>();
-
-  jsonString = GetFileAsString("/styleClasses.json");
-  DynamicJsonDocument classes = toJSON(jsonString);
-
-  JsonArray classArray = classes["classes"].as<JsonArray>();
-
-  return new UIDocument(jObject, display.width(), display.height(), &classArray);
-}
-
 void AddWeatherDataToDoc(UIDocument* doc, String menuName, const WeatherData& data){
   Element* menu = doc->find(menuName);
   if(menu == nullptr){return;}
@@ -209,9 +173,9 @@ WeatherData getIndoorData(){
 }
 
 void test(){
-  UIDocument* uiDoc = getUIDoc("/menu.json");
-  UIDocument* uiDocConnecting = getUIDoc("/ConnectMenu.json");
-  APuiDoc = getUIDoc("/APMenu.json");
+  UIDocument* uiDoc = new UIDocument("/menu.json", display.width(), display.height());
+  UIDocument* uiDocConnecting = new UIDocument("/ConnectMenu.json", display.width(), display.height());
+  APuiDoc = new UIDocument("/APMenu.json", display.width(), display.height());
   WeatherData sensorData(10, "0", 0); //getIndoorData();
   WeatherData onlineData(-10, "OFF", 0);
   AddWeatherDataToDoc(uiDoc, "InDoor", sensorData);
@@ -244,7 +208,7 @@ void test(){
 }
 
 void offlineTest(){
-  UIDocument* uiDoc = getUIDoc("/menu.json");
+  UIDocument* uiDoc = new UIDocument("/menu.json", display.width(), display.height());
   WeatherData data(23, "", 68);
   WeatherData onlineData(-10, "CLEAR", 0);
   AddWeatherDataToDoc(uiDoc, "InDoor", data);

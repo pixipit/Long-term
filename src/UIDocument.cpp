@@ -21,6 +21,28 @@ UIDocument::UIDocument(const JsonObject& jObject, int width, int height, const J
   Serial.println("converted to UIdoc");
 }
 
+UIDocument::UIDocument(String path, int screenWidth, int screenHeight){
+  String jsonString = GetFileAsString(path);
+  DynamicJsonDocument doc(2048);
+  DeserializationError  error = deserializeJson(doc, jsonString);
+  if (error) {
+    Serial.print(F("deserializeJson() failed with code "));
+    Serial.println(error.c_str());
+  }
+  JsonObject jObject = doc["visualElement"].as<JsonObject>();
+
+  jsonString = GetFileAsString("/styleClasses.json");
+  DynamicJsonDocument classes(1024);
+  error = deserializeJson(classes, jsonString);
+  if (error) {
+    Serial.print(F("(styleClass.json) deserializeJson() failed with code "));
+    Serial.println(error.c_str());
+  }
+  JsonArray classArray = classes["classes"].as<JsonArray>();
+
+  *this =  UIDocument(jObject, screenWidth, screenHeight, &classArray);
+}
+
 UIDocument::~UIDocument(){
   //for(int i = 0; i < root.nOfChildren; i++){
   //  delete &(root.children[i]);
@@ -226,26 +248,4 @@ String UIDocument::GetFileAsString(String path){
   String jsonMenu = f.readString();
   f.close();
   return jsonMenu;
-}
-
-UIDocument* UIDocument::getUIDoc(String path, int screenWidth, int screenHeight){
-  String jsonString = GetFileAsString(path);
-  DynamicJsonDocument doc(2048);
-  DeserializationError  error = deserializeJson(doc, jsonString);
-  if (error) {
-    Serial.print(F("deserializeJson() failed with code "));
-    Serial.println(error.c_str());
-  }
-  JsonObject jObject = doc["visualElement"].as<JsonObject>();
-
-  jsonString = GetFileAsString("/styleClasses.json");
-  DynamicJsonDocument classes(1024);
-  error = deserializeJson(classes, jsonString);
-  if (error) {
-    Serial.print(F("(styleClass.json) deserializeJson() failed with code "));
-    Serial.println(error.c_str());
-  }
-  JsonArray classArray = classes["classes"].as<JsonArray>();
-
-  return new UIDocument(jObject, screenWidth, screenHeight, &classArray);
 }

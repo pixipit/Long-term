@@ -50,12 +50,12 @@ private:
   Element toRealCoord(Element e, const Element& parentReal);
   void setProperties(const JsonObject& jObject, Element& e);
   const JsonArray* classes = nullptr;
-  UIDocument* getUIDoc(String path, int screenWidth, int screenHeight);
 public:
     Element root;
     UIDocument();
     ~UIDocument();
     UIDocument(const JsonObject& jObject, int width, int height, const JsonArray* classArray);
+    UIDocument(String path, int screenWidth, int screenHeight);
     Element* find(const String& name);
     Element* find(const String& name, Element& parent);
     String GetFileAsString(String path);
