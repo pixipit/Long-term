@@ -1,9 +1,12 @@
 #include<UIDocument.h>
 
-UIDocument::UIDocument(/* args */)
-{
-}
-UIDocument::UIDocument(const JsonObject& jObject, int width, int height, const JsonArray* classArray = nullptr): classes(classArray){
+UIDocument::UIDocument(/* args */){}
+/// @brief Creates UIDocument based on JsonObject. Unknow keys are skipped
+    /// @param jObject 
+    /// @param width 
+    /// @param height 
+    /// @param classArray 
+UIDocument::UIDocument(const JsonObject& jObject, int screenWidth, int screenHeight, const JsonArray* classArray = nullptr): classes(classArray){
   Serial.println("converting json to UIDoc");
   root = jsonToElement(jObject);
   Serial.println("json converted");
@@ -11,8 +14,8 @@ UIDocument::UIDocument(const JsonObject& jObject, int width, int height, const J
   parent.posX = 0;
   parent.posY = 2;
 
-  parent.sizeX = height;
-  parent.sizeY = width;
+  parent.sizeX = screenHeight;
+  parent.sizeY = screenWidth;
   
   
   root = toRealCoord(root, parent);
@@ -20,9 +23,12 @@ UIDocument::UIDocument(const JsonObject& jObject, int width, int height, const J
   alignChildren(root);
   Serial.println("converted to UIdoc");
 }
-
+/// @brief Loads file and creates UIDocument based on it
+/// @param path 
+/// @param screenWidth 
+/// @param screenHeight 
 UIDocument::UIDocument(String path, int screenWidth, int screenHeight){
-  String jsonString = GetFileAsString(path);
+  String jsonString = getFileAsString(path);
   DynamicJsonDocument doc(2048);
   DeserializationError  error = deserializeJson(doc, jsonString);
   if (error) {
@@ -31,7 +37,7 @@ UIDocument::UIDocument(String path, int screenWidth, int screenHeight){
   }
   JsonObject jObject = doc["visualElement"].as<JsonObject>();
 
-  jsonString = GetFileAsString("/styleClasses.json");
+  jsonString = getFileAsString("/styleClasses.json");
   DynamicJsonDocument classes(1024);
   error = deserializeJson(classes, jsonString);
   if (error) {
@@ -48,7 +54,10 @@ UIDocument::~UIDocument(){
   //  delete &(root.children[i]);
   //}
 }
-
+/// @brief finds element by name
+/// @param name 
+/// @param parent parent to search in for
+/// @return pointer to element. If the element is not found return null pointer.
 Element* UIDocument::find(const String& name, Element& parent){
   if(parent.name == name){
     return &parent;
@@ -61,7 +70,9 @@ Element* UIDocument::find(const String& name, Element& parent){
   }
   return nullptr;
 }
-
+/// @brief finds element by name
+/// @param name
+/// @return pointer to element. If the element is not found return null pointer.
 Element* UIDocument::find(const String& name){
   return find(name, root);
 }
@@ -235,7 +246,7 @@ void UIDocument::alignChildren(Element& parent){
     }
 }
 
-String UIDocument::GetFileAsString(String path){
+String UIDocument::getFileAsString(String path){
   if(!SPIFFS.exists(path)){
     Serial.println("file not found! path:" + path);
   }

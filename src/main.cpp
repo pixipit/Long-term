@@ -49,12 +49,14 @@ UIDocument* APuiDoc = nullptr;
 
 HTU21D indoorSensor;
 
+/// @brief inits display and sets correct rotation
 void displayInit(){
   display.init();
   display.eraseDisplay();
   display.setRotation(3);
 }
 
+/// @brief inits Serial Port, SPISSF and HTU21D indoorSensor. Also sets up deep sleep
 void init(){
   Serial.begin(115200);
   Serial.println("Hello World!");
@@ -68,7 +70,8 @@ void init(){
     return;
   }
 }
-
+/// @brief Gets data via http request and adds it to buffer. If the request fails, calls "tryGetSavedWeatherData"
+/// @param dataBuffer
 void addOnlineWeatherData(StationData& dataBuffer){
   HTTPClient client;
   
@@ -87,11 +90,15 @@ void addOnlineWeatherData(StationData& dataBuffer){
   }
 }
 
+/// @brief Called if the station fail to connect to wifi. Display AP mode page
+/// @param myWiFiManager 
 void configModeCallback (WiFiManager *myWiFiManager){
   Serial.println("Starting Portal CallBack");
   display.drawPaged([](const void* doc){renderer.render((const UIDocument*)doc);}, (const void*)APuiDoc); // not working
 }
 
+/// @brief Connects to wifi or starts AP mode
+/// @return 
 bool autoConnectToWifi(){
   WiFiManager wm;
 
@@ -103,7 +110,10 @@ bool autoConnectToWifi(){
 
   return (bool)wm.autoConnect(AP_NAME, AP_NAME);
 }
-
+/// @brief Adds WeatherData to UIDocument
+/// @param doc 
+/// @param menuName menu name to add to ("OutDoor" or "InDoor")
+/// @param data 
 void AddWeatherDataToDoc(UIDocument* doc, String menuName, const WeatherData& data){
   Element* menu = doc->find(menuName);
   if(menu == nullptr){return;}
@@ -120,25 +130,28 @@ void addStationDataToUIDoc(UIDocument* uiDoc, const StationData& data){
 
   uiDoc->find("DescriptionText")->value = data.description;
 }
-
-void addIndoorData(StationData& dataBuffer){
+/// @brief Adds data from indoor sensor
+/// @param dataBuffer 
+void addIndoorData(WeatherData& dataBuffer){
   //reading data from sensor
   float humd = indoorSensor.readHumidity();
   float temp = indoorSensor.readTemperature();
-  dataBuffer.weatherDataOffline.temp = temp;
-  dataBuffer.weatherDataOffline.humidity = humd;
+  dataBuffer.temp = temp;
+  dataBuffer.humidity = humd;
 }
 
-void test(){
-  UIDocument* uiDoc = new UIDocument("/menu.json", display.width(), display.height());
-  UIDocument* uiDocConnecting = new UIDocument("/ConnectMenu.json", display.width(), display.height());
-  APuiDoc = new UIDocument("/APMenu.json", display.width(), display.height());
+void run(){
   StationData data;
   //addIndoorData(data); // adds data from sensor
   Serial.println("InDoor data added");
   displayInit();
+  //loads Connect Menu page 
+  UIDocument* uiDocConnecting = new UIDocument("/ConnectMenu.json", display.width(), display.height());
+  //draws page
   display.drawPaged([](const void* doc){renderer.render((const UIDocument*)doc);}, (const void*)uiDocConnecting);
-
+  
+  //sets APuiDoc for Wifi Manager callback
+  APuiDoc = new UIDocument("/APMenu.json", display.width(), display.height());
   bool connected = autoConnectToWifi();
 
   if(connected)
@@ -150,6 +163,8 @@ void test(){
     tryGetSavedWeatherData(data);
   }
 
+  UIDocument* uiDoc = new UIDocument("/menu.json", display.width(), display.height());
+  //adds gathered data to page to be displayed
   addStationDataToUIDoc(uiDoc, data);
   display.drawPaged([](const void* doc){renderer.render((const UIDocument*)doc);}, (const void*)uiDoc);
 }
@@ -203,12 +218,12 @@ void setup()
 {
   delay(3000);
   init();
-  //test();
+  //run();
   runOffline();
   Serial.println("Done going to sleep");
   esp_deep_sleep_start();
 }
 
 void loop(){
-    //This is not going to be called  
+  //This is not going to be called  
 }

@@ -1,5 +1,8 @@
 #include "jsonUtils.hpp"
 
+/// @brief converts string to DynamicJsonDocument
+/// @param s 
+/// @return 
 DynamicJsonDocument toJSON(String s){
   DynamicJsonDocument doc(2048);
   DeserializationError  error = deserializeJson(doc, s);
@@ -9,6 +12,9 @@ DynamicJsonDocument toJSON(String s){
   }
   return doc;
 }
+/// @brief adds data to dataBuffer from json doc
+/// @param doc 
+/// @param dataBuffer 
 void jsonToStationData(const DynamicJsonDocument& doc, StationData& dataBuffer){
   String description = doc["weather"][0]["main"];
   description.toUpperCase();
