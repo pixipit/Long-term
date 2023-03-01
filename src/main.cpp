@@ -52,7 +52,7 @@ HTU21D indoorSensor;
 void displayInit(){
   display.init();
   display.eraseDisplay();
-  display.setRotation(1);
+  display.setRotation(3);
 }
 
 void init(){

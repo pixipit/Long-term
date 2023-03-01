@@ -29,6 +29,7 @@ void UIRenderer::drawElement(const Element& e){
         drawElement(e.children[i]);
   }
 }
+
 void UIRenderer::render(const UIDocument* doc){
     drawElement(doc->root);
 }
