@@ -15,17 +15,17 @@ String getFileAsString(String path){
   f.close();
   return s;
 }
-HttpWeatherResponse getSavedWeatherData(){
+void getSavedWeatherData(StationData& dataBuffer){
   String s = getFileAsString(SAVED_WEATHER_DATA_PATH);
   DynamicJsonDocument doc = toJSON(s);
-  return jsonToHttpWeatherResponse(doc);
+  jsonToStationData(doc, dataBuffer);
 }
-HttpWeatherResponse tryGetSavedWeatherData(){
-  if(!SPIFFS.exists(SAVED_WEATHER_DATA_PATH)){
+void tryGetSavedWeatherData(StationData& dataBuffer){
+    if(!SPIFFS.exists(SAVED_WEATHER_DATA_PATH)){
       Serial.println("Data not saved!");
-      return HttpWeatherResponse{};
+      return;
     }
-    return getSavedWeatherData();
+    getSavedWeatherData(dataBuffer);
 }
 void saveWeatherData(String data){
   File f = SPIFFS.open(SAVED_WEATHER_DATA_PATH, "w");

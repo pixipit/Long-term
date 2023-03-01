@@ -9,7 +9,7 @@ DynamicJsonDocument toJSON(String s){
   }
   return doc;
 }
-HttpWeatherResponse jsonToHttpWeatherResponse(const DynamicJsonDocument& doc){
+void jsonToStationData(const DynamicJsonDocument& doc, StationData& dataBuffer){
   String description = doc["weather"][0]["main"];
   description.toUpperCase();
   float temp = doc["main"]["temp"];
@@ -20,6 +20,8 @@ HttpWeatherResponse jsonToHttpWeatherResponse(const DynamicJsonDocument& doc){
   String timeAsString = String(std::ctime(&t));
   Serial.println(timeAsString);
   DataTime d{timeAsString.substring(4, 10), timeAsString.substring(11, 16)};
-  WeatherData data(temp, description, humidity);
-  return HttpWeatherResponse{data, d};
+  WeatherData data(temp, humidity);
+  dataBuffer.description = description;
+  dataBuffer.timeData = d;
+  dataBuffer.weatherDataOnline = data;
 }

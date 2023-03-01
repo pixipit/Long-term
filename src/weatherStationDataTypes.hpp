@@ -5,8 +5,7 @@
 struct WeatherData
 {
 float temp, humidity;
-String description;
-WeatherData(float temp, String description, int humidity): description(description), temp(temp), humidity(humidity){}
+WeatherData(float temp, int humidity): temp(temp), humidity(humidity){}
 };
 struct DataTime
 {
@@ -14,10 +13,14 @@ struct DataTime
   String time;
 };
 
-struct HttpWeatherResponse
+struct StationData
 {
-  WeatherData weatherData;// = WeatherData(23.0, "", 68);
-  DataTime timeData;// = DataTime{ "JAN 1", "12:00"};
-  HttpWeatherResponse():weatherData(WeatherData(23.0, "", 68)), timeData(DataTime{ "JAN 1", "12:00"}){}
-  HttpWeatherResponse(WeatherData weatherData, DataTime timeData):weatherData(weatherData), timeData(timeData){}
+  WeatherData weatherDataOnline;
+  WeatherData weatherDataOffline;
+  String description;
+  DataTime timeData;
+  StationData():weatherDataOnline(WeatherData(23.0, 68)),
+   weatherDataOffline(WeatherData(23.0, 68)),
+   description("OFF"),
+   timeData(DataTime{ "JAN 1", "12:00"}){}
 };
