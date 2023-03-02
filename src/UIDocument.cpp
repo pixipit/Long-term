@@ -12,7 +12,7 @@ UIDocument::UIDocument(const JsonObject& jObject, int screenWidth, int screenHei
   Serial.println("json converted");
   Element parent;
   parent.posX = 0;
-  parent.posY = 2;
+  parent.posY = 0;
 
   parent.sizeX = screenHeight;
   parent.sizeY = screenWidth;

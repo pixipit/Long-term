@@ -1,7 +1,8 @@
 {"visualElement":{
     "name": "root",
     "pos": [0,0],
-    "size" : [0.96, 0.90],
+    "size" : [0.94, 0.90],
+    "border":"false",
     "children":[
         {"name":"Indoor", "class":".sub-menu", "children": [
             {"class":".text","value": "IN", "children": []},
@@ -9,15 +10,9 @@
             {"class":".text", "value": "68%", "children": []}
         ]},
         {"name":"middle", "class":".sub-menu", "children": [
-            {"size":[1.0, 0.33], "children":[
-                {"type":"text","name":"DateText","value": "1.4", "children": []}
-            ]},
-            {"size":[1.0, 0.33], "children":[
-                {"type":"text","name":"DescriptionText","value": "Clear", "children": []}
-            ]},
-            {"size":[1.0, 0.33], "children":[
-                {"type":"text","name":"TimeText","value": "22:00", "children": []}
-            ]}
+            {"class":".text","name":"DateText","value": "1.4", "children": []},
+            {"class":".text","name":"DescriptionText","value": "Clear", "children": []},
+            {"class":".text","name":"TimeText","value": "22:00", "children": []}
         ]},
         {"name":"OutDoor", "class":".sub-menu", "children": [
             {"class":".text","value": "OUT", "children": []},
