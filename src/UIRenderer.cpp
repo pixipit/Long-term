@@ -37,5 +37,6 @@ void UIRenderer::drawElement(const Element& e){
 /// @brief Renders UIDocument on display
 /// @param doc 
 void UIRenderer::render(const UIDocument* doc){
+    display->setRotation(3);
     drawElement(doc->root);
 }
